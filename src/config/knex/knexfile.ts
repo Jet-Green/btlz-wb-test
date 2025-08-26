@@ -12,7 +12,7 @@ const connectionSchema = z.object({
 
 const NODE_ENV = env.NODE_ENV ?? "development";
 
-const knegConfigs: Record<typeof NODE_ENV, Knex.Config> = {
+const knexConfigs: Record<typeof NODE_ENV, Knex.Config> = {
     development: {
         client: "pg",
         connection: () =>
@@ -28,13 +28,13 @@ const knegConfigs: Record<typeof NODE_ENV, Knex.Config> = {
             max: 10,
         },
         migrations: {
-            stub: 'src/config/knex/migration.stub.js',
+            stub: "src/config/knex/migration.stub.js",
             directory: "./src/postgres/migrations",
             tableName: "migrations",
             extension: "ts",
         },
         seeds: {
-            stub: 'src/config/knex/seed.stub.js',
+            stub: "src/config/knex/seed.stub.js",
             directory: "./src/postgres/seeds",
             extension: "js",
         },
@@ -54,17 +54,17 @@ const knegConfigs: Record<typeof NODE_ENV, Knex.Config> = {
             max: 10,
         },
         migrations: {
-            stub: 'dist/config/knex/migration.stub.js',
+            stub: "dist/config/knex/migration.stub.js",
             directory: "./dist/postgres/migrations",
             tableName: "migrations",
             extension: "js",
         },
         seeds: {
-            stub: 'src/config/knex/seed.stub.js',
+            stub: "src/config/knex/seed.stub.js",
             directory: "./dist/postgres/seeds",
             extension: "js",
         },
     },
 };
 
-export default knegConfigs[NODE_ENV];
+export default knexConfigs[NODE_ENV];
