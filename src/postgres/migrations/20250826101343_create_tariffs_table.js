@@ -7,7 +7,7 @@ export async function up(knex) {
         table.increments("id").primary();
 
         // Дата, за которую были запрошены тарифы.
-        table.date("snapshot_date").notNullable();
+        table.date("snapshot_date").notNullable().unique();
 
         table.timestamp("dt_next_box").nullable();
         table.timestamp("dt_till_max").nullable();

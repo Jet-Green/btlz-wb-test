@@ -96,25 +96,29 @@ export const wbService = {
     },
     async saveOrUpdateTariffs(tariffData: Tariff, forDate: string) {
         await db.transaction(async (trx) => {
-            console.log(`Deleting ALL old snapshots for date: ${forDate}`);
-            await trx("tariff_snapshots").where("snapshot_date", forDate).del();
-
-            const [newSnapshot] = await trx("tariff_snapshots")
+            const snapshotInsert = trx("tariff_snapshots")
                 .insert({
                     snapshot_date: forDate,
                     dt_next_box: tariffData.dtNextBox,
                     dt_till_max: tariffData.dtTillMax,
                 })
-                .returning(["id"]);
+                .onConflict("snapshot_date")
+                .merge({
+                    dt_next_box: tariffData.dtNextBox,
+                    dt_till_max: tariffData.dtTillMax,
+                    updated_at: new Date(),
+                })
+                .returning("id");
 
-            const snapshotId = newSnapshot.id;
+            const [{ id: snapshotId }] = await snapshotInsert;
 
             if (!tariffData.warehouseList || tariffData.warehouseList.length === 0) {
-                console.log("No warehouse tariffs to insert.");
+                console.log("No warehouse tariffs received from API. Deleting all tariffs for this date.");
+                await trx("warehouse_tariffs").where("snapshot_id", snapshotId).del();
                 return;
             }
 
-            const tariffsToInsert = tariffData.warehouseList.map((whTariff) => ({
+            const tariffsToUpsert = tariffData.warehouseList.map((whTariff) => ({
                 snapshot_id: snapshotId,
                 warehouse_name: whTariff.warehouseName || "N/A",
                 geo_name: whTariff.geoName || "N/A",
@@ -129,9 +133,17 @@ export const wbService = {
                 box_storage_liter: whTariff.boxStorageLiter || "0",
             }));
 
-            await trx("warehouse_tariffs").insert(tariffsToInsert);
+            await trx("warehouse_tariffs").insert(tariffsToUpsert).onConflict(["snapshot_id", "warehouse_name"]).merge();
 
-            console.log(`Successfully inserted ${tariffsToInsert.length} warehouse tariffs for snapshot ID ${snapshotId}.`);
+            console.log(`Successfully upserted ${tariffsToUpsert.length} warehouse tariffs.`);
+
+            const actualWarehouseNames = tariffsToUpsert.map((t) => t.warehouse_name);
+
+            const deletedCount = await trx("warehouse_tariffs").where("snapshot_id", snapshotId).whereNotIn("warehouse_name", actualWarehouseNames).del();
+
+            if (deletedCount > 0) {
+                console.log(`Deleted ${deletedCount} stale warehouse tariffs.`);
+            }
         });
     },
 };
