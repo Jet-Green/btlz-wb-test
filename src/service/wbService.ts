@@ -50,27 +50,27 @@ export const wbService = {
         }
 
         console.log(`Fetching tariffs for date: ${forDate}`);
-        return {
-            "dtNextBox": "2024-02-01",
-            "dtTillMax": "2024-03-31",
-            "warehouseList": [
-                {
-                    "boxDeliveryBase": "48",
-                    "boxDeliveryCoefExpr": "160",
-                    "boxDeliveryLiter": "11,2",
-                    "boxDeliveryMarketplaceBase": "40",
-                    "boxDeliveryMarketplaceCoefExpr": "125",
-                    "boxDeliveryMarketplaceLiter": "11",
-                    "boxStorageBase": "0,14",
-                    "boxStorageCoefExpr": "115",
-                    "boxStorageLiter": "0,07",
-                    "geoName": "Центральный федеральный округ",
-                    "warehouseName": "Коледино",
-                },
-            ],
-        };
+        // return {
+        //     "dtNextBox": "2024-02-01",
+        //     "dtTillMax": "2024-03-31",
+        //     "warehouseList": [
+        //         {
+        //             "boxDeliveryBase": "48",
+        //             "boxDeliveryCoefExpr": "160",
+        //             "boxDeliveryLiter": "11,2",
+        //             "boxDeliveryMarketplaceBase": "40",
+        //             "boxDeliveryMarketplaceCoefExpr": "125",
+        //             "boxDeliveryMarketplaceLiter": "11",
+        //             "boxStorageBase": "0,14",
+        //             "boxStorageCoefExpr": "115",
+        //             "boxStorageLiter": "0,07",
+        //             "geoName": "Центральный федеральный округ",
+        //             "warehouseName": "Коледино",
+        //         },
+        //     ],
+        // };
         try {
-            const response = await axios.get<{ data: Tariff }>(url, {
+            const response = await axios.get<{ response: { data: Tariff } }>(url, {
                 headers: {
                     "Authorization": `Bearer ${env.WB_API_TOKEN}`,
                 },
@@ -78,10 +78,9 @@ export const wbService = {
                     date: forDate,
                 },
             });
-            console.log(response);
 
             if (response.data) {
-                return response.data.data;
+                return response.data.response.data;
             }
 
             return null;
@@ -117,17 +116,17 @@ export const wbService = {
 
             const tariffsToInsert = tariffData.warehouseList.map((whTariff) => ({
                 snapshot_id: snapshotId,
-                warehouse_name: whTariff.warehouseName,
-                geo_name: whTariff.geoName,
-                box_delivery_base: parseFloat(whTariff.boxDeliveryBase),
-                box_delivery_coef_expr: parseFloat(whTariff.boxDeliveryCoefExpr),
-                box_delivery_liter: parseFloat(whTariff.boxDeliveryLiter),
-                box_delivery_marketplace_base: parseFloat(whTariff.boxDeliveryMarketplaceBase),
-                box_delivery_marketplace_coef_expr: parseFloat(whTariff.boxDeliveryMarketplaceCoefExpr),
-                box_delivery_marketplace_liter: parseFloat(whTariff.boxDeliveryMarketplaceLiter),
-                box_storage_base: parseFloat(whTariff.boxStorageBase),
-                box_storage_coef_expr: parseFloat(whTariff.boxStorageCoefExpr),
-                box_storage_liter: parseFloat(whTariff.boxStorageLiter),
+                warehouse_name: whTariff.warehouseName || "N/A",
+                geo_name: whTariff.geoName || "N/A",
+                box_delivery_base: whTariff.boxDeliveryBase || "0",
+                box_delivery_coef_expr: whTariff.boxDeliveryCoefExpr || "0",
+                box_delivery_liter: whTariff.boxDeliveryLiter || "0",
+                box_delivery_marketplace_base: whTariff.boxDeliveryMarketplaceBase || "0",
+                box_delivery_marketplace_coef_expr: whTariff.boxDeliveryMarketplaceCoefExpr || "0",
+                box_delivery_marketplace_liter: whTariff.boxDeliveryMarketplaceLiter || "0",
+                box_storage_base: whTariff.boxStorageBase || "0",
+                box_storage_coef_expr: whTariff.boxStorageCoefExpr || "0",
+                box_storage_liter: whTariff.boxStorageLiter || "0",
             }));
 
             await trx("warehouse_tariffs").insert(tariffsToInsert);
