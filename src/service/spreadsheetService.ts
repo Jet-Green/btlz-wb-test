@@ -14,33 +14,35 @@ const sheetsApi = google.sheets({ version: "v4", auth });
 
 const SHEET_NAME = "stocks_coefs";
 
-/**
- * Получает и сортирует актуальные тарифы из БД для выгрузки.
- *
- * @param forDate Дата в формате 'YYYY-MM-DD'
- */
-async function getTariffsForExport(forDate: string) {
-    const snapshot = await db("tariff_snapshots").where("snapshot_date", forDate).first();
+async function getAllTariffsForExport() {
+    const allTariffs = await db("warehouse_tariffs as wt")
+        .join("tariff_snapshots as ts", "wt.snapshot_id", "ts.id")
+        .select(
+            db.raw("TO_CHAR(ts.snapshot_date, 'YYYY-MM-DD') as snapshot_date"),
+            "ts.dt_next_box",
+            "ts.dt_till_max",
+            "wt.warehouse_name",
+            "wt.geo_name",
+            "wt.box_delivery_base",
+            "wt.box_delivery_coef_expr",
+            "wt.box_delivery_liter",
+            "wt.box_delivery_marketplace_base",
+            "wt.box_delivery_marketplace_coef_expr",
+            "wt.box_delivery_marketplace_liter",
+            "wt.box_storage_base",
+            "wt.box_storage_coef_expr",
+            "wt.box_storage_liter",
+        )
+        .orderBy([
+            { column: "ts.snapshot_date", order: "desc" },
+            { column: "wt.box_delivery_coef_expr", order: "asc" },
+        ]);
 
-    if (!snapshot) {
-        console.log(`No snapshot found for date ${forDate}.`);
-        return [];
-    }
-
-    const tariffs = await db("warehouse_tariffs").where("snapshot_id", snapshot.id).orderBy("box_delivery_coef_expr", "asc");
-
-    return tariffs.map((tariff) => ({
-        ...tariff,
-        dt_next_box: snapshot.dt_next_box,
-        dt_till_max: snapshot.dt_till_max,
-    }));
+    return allTariffs;
 }
-
 export const spreadsheetService = {
     async updateMainTariffSheet() {
-        console.log("Starting spreadsheet update...");
-
-        const SHEET_NAME = "stocks_coefs";
+        console.log("Starting update for spreadsheets...");
 
         const spreadsheets = await db("spreadsheets").select("spreadsheet_id");
         const spreadsheetIds = spreadsheets.map((s) => s.spreadsheet_id);
@@ -49,19 +51,14 @@ export const spreadsheetService = {
             return;
         }
 
-        const now = new Date();
-        const year = now.getFullYear();
-        const month = String(now.getMonth() + 1).padStart(2, "0");
-        const day = String(now.getDate()).padStart(2, "0");
-        const today = `${year}-${month}-${day}`;
-
-        const tariffs = await getTariffsForExport(today);
-        if (tariffs.length === 0) {
-            console.log("No tariff data for today.");
+        const allTariffs = await getAllTariffsForExport();
+        if (allTariffs.length === 0) {
+            console.log("No tariff data found in the database.");
             return;
         }
 
         const headerRow = [
+            "Дата тарифа",
             "Склад",
             "Регион",
             "Дата след. тарифа",
@@ -76,7 +73,9 @@ export const spreadsheetService = {
             "Коэф. хранения, %",
             "Хранение, доп. литр ₽",
         ];
-        const dataRows = tariffs.map((t) => [
+
+        const dataRows = allTariffs.map((t) => [
+            t.snapshot_date,
             t.warehouse_name,
             t.geo_name,
             t.dt_next_box,
@@ -115,6 +114,7 @@ export const spreadsheetService = {
                         },
                     });
                 }
+
                 await sheetsApi.spreadsheets.values.clear({
                     spreadsheetId: sheetId,
                     range: SHEET_NAME,
@@ -129,11 +129,10 @@ export const spreadsheetService = {
                     },
                 });
 
-                console.log(`Successfully updated sheet '${SHEET_NAME}' in spreadsheet: ${sheetId}`);
+                console.log(`Successfully rebuilt sheet '${SHEET_NAME}' in spreadsheet: ${sheetId} with ${allTariffs.length} rows.`);
             } catch (error: any) {
                 console.error(`Failed to update sheet ${sheetId}. Error:`, error.message);
             }
         }
-        console.log("Single-sheet update process finished.");
     },
 };
