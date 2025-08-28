@@ -19,6 +19,13 @@ const envSchema = z.object({
             .regex(/^[0-9]+$/)
             .transform((value) => parseInt(value)),
     ]),
+    SERVER_PORT: z.union([
+        z.undefined(),
+        z
+            .string()
+            .regex(/^[0-9]+$/)
+            .transform((value) => parseInt(value)),
+    ]),
     WB_API_TOKEN: z.string(),
     SPREADSHEET_CREDENTIALS_NAME: z.string(),
 });
@@ -31,6 +38,7 @@ const env = envSchema.parse({
     POSTGRES_PASSWORD: process.env.POSTGRES_PASSWORD,
     NODE_ENV: process.env.NODE_ENV,
     APP_PORT: process.env.APP_PORT,
+    SERVER_PORT: process.env.SERVER_PORT,
     WB_API_TOKEN: process.env.WB_API_TOKEN,
     SPREADSHEET_CREDENTIALS_NAME: process.env.SPREADSHEET_CREDENTIALS_NAME,
 });

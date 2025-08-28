@@ -3,6 +3,7 @@ import cron from "node-cron";
 import { wbService } from "./service/wbService.js";
 import { spreadsheetService } from "#service/spreadsheetService.js";
 import env from "#config/env/env.js";
+import { migrate } from "#postgres/knex.js";
 
 async function mainJob() {
     console.log("--- Hourly Job Started ---");
@@ -45,7 +46,7 @@ async function mainJob() {
 }
 
 const app = express();
-const PORT = env.APP_PORT || 3000;
+const PORT = env.SERVER_PORT || 3001;
 
 app.use(express.json());
 
@@ -62,7 +63,9 @@ app.post("/api/spreadsheets", async (req, res) => {
         return res.status(409).json({ error: error.message });
     }
 });
-mainJob();
+
+await migrate.latest();
+
 cron.schedule("0 * * * *", mainJob);
 
 app.listen(PORT, () => {
