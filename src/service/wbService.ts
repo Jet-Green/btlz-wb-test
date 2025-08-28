@@ -94,7 +94,8 @@ export const wbService = {
             return null;
         }
     },
-    async saveOrUpdateTariffs(tariffData: Tariff, forDate: string) {
+    async saveOrUpdateTariffs(tariffData: Tariff, forDate: string): Promise<boolean> {
+        let updated = false;
         await db.transaction(async (trx) => {
             const snapshotInsert = trx("tariff_snapshots")
                 .insert({
@@ -144,6 +145,9 @@ export const wbService = {
             if (deletedCount > 0) {
                 console.log(`Deleted ${deletedCount} stale warehouse tariffs.`);
             }
+
+            updated = true;
         });
+        return updated;
     },
 };
