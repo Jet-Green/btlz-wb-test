@@ -38,7 +38,7 @@ async function mainJob() {
     if (wasDbUpdated) {
         try {
             console.log("Database changed, running full synchronization with Google Sheets...");
-            await spreadsheetService.syncAllGoogleSheets();
+            await spreadsheetService.updateMainTariffSheet();
         } catch (error: any) {
             console.error("ERROR during Google Sheets sync:", error.message);
         }
@@ -65,7 +65,7 @@ app.post("/api/spreadsheets", async (req, res) => {
 });
 
 await migrate.latest();
-
+mainJob();
 cron.schedule("0 * * * *", mainJob);
 
 app.listen(PORT, () => {

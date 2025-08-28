@@ -32,7 +32,7 @@
     Заполните переменные в `.env` (см. детали ниже).
 
 3.  **Добавить ключи Google API:**
-    Поместите ваш `credentials.json` файл в папку `config/`. Убедитесь, что имя файла совпадает со значением `SPREADSHEET_CREDENTIALS_NAME` в `.env`.
+    Поместите ваш `credentials.json` файл в папку `config/credentials`. Убедитесь, что имя файла совпадает со значением `SPREADSHEET_CREDENTIALS_NAME` в `.env`.
 
 4.  **Запустить проект:**
     ```bash
